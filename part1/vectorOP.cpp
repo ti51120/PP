@@ -71,11 +71,14 @@ void clampedExpVector(float *values, int *exponents, float *output, int N)
     maskIsNotZero = _pp_mask_not(maskIsZero); // mask for non-zero exponent
 		_pp_vsub_int(e, e, ones, maskIsNotZero);
 		_pp_vmove_float(result, val, maskIsNotZero);
+		_pp_veq_int(maskIsZero, e, zero, maskAll);
+		maskIsNotZero = _pp_mask_not(maskIsZero);
 
 		while(_pp_cntbits(maskIsZero) != VECTOR_WIDTH){
 			_pp_vmult_float(result, result, val, maskIsNotZero);
 			_pp_vsub_int(e, e, ones, maskIsNotZero);
 			_pp_veq_int(maskIsZero, e, zero, maskAll);
+			maskIsNotZero = _pp_mask_not(maskIsZero);
 		}
 
 		_pp_vgt_float(maskIsGt9, result, nine, maskAll);
