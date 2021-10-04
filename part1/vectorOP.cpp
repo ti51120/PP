@@ -1,4 +1,5 @@
 #include "PPintrin.h"
+#include <iostream>
 
 // implementation of absSerial(), but it is vectorized using PP intrinsics
 void absVector(float *values, float *output, int N)
@@ -53,20 +54,34 @@ void clampedExpVector(float *values, int *exponents, float *output, int N)
   __pp_vec_int e;
   __pp_vec_float result;
   __pp_vec_int zero = _pp_vset_int(0);
-  __pp_vec_float ones = _pp_vset_float(1.0f);
-  __pp_mask maskAll, maskIsZero, maskIsNotZero;
+  __pp_vec_int ones = _pp_vset_int(1);
+	__pp_vec_float nine = _pp_vset_float(9.999999f);
+  __pp_mask maskAll, maskIsZero, maskIsNotZero, maskIsGt9;
 
   for (int i = 0; i < N; i += VECTOR_WIDTH)
   {
     maskAll = _pp_init_ones(); // all ones
     maskIsZero = _pp_init_ones(0); // all ones except for 0 exponent
-    _pp_vload_float(val, values + i, maskAll);
-    _pp_vload_int(e, exponents + i, maskAll);
+    _pp_vload_float(val, values + i, maskAll); // load value[]
+    _pp_vload_int(e, exponents + i, maskAll); // load exponents[]
 
-    _pp_veq_int(maskIsZero, e, zero, maskAll);
+    _pp_veq_int(maskIsZero, e, zero, maskAll); // mask for 0 exponent
+		_pp_vset_float(result, 1.f, maskIsZero); // set value[] to 1 if 0 exponent
+		
+    maskIsNotZero = _pp_mask_not(maskIsZero); // mask for non-zero exponent
+		_pp_vsub_int(e, e, ones, maskIsNotZero);
+		_pp_vmove_float(result, val, maskIsNotZero);
 
+		while(_pp_cntbits(maskIsZero) != VECTOR_WIDTH){
+			_pp_vmult_float(result, result, val, maskIsNotZero);
+			_pp_vsub_int(e, e, ones, maskIsNotZero);
+			_pp_veq_int(maskIsZero, e, zero, maskAll);
+		}
 
+		_pp_vgt_float(maskIsGt9, result, nine, maskAll);
+		_pp_vset_float(result, 9.999999f, maskIsGt9);
 
+    _pp_vstore_float(output + i, result, maskAll);
   }
 }
 

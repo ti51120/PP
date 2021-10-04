@@ -139,6 +139,7 @@ void initValue(float *values, int *exponents, float *output, float *gold, unsign
   {
     // random input values
     values[i] = -1.f + 4.f * static_cast<float>(rand()) / RAND_MAX;
+    // exponents[i] = 9;
     exponents[i] = rand() % EXP_MAX;
     output[i] = 0.f;
     gold[i] = 0.f;
