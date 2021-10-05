@@ -40,6 +40,7 @@ int main(int argc, char *argv[])
     {
     case 's':
       N = atoi(optarg);
+      printf("N:%d\n", N);
       if (N <= 0)
       {
         printf("Error: Workload size is set to %d (<0).\n", N);
@@ -55,13 +56,20 @@ int main(int argc, char *argv[])
       return 1;
     }
   }
-
   float *values = new float[N + VECTOR_WIDTH];
   int *exponents = new int[N + VECTOR_WIDTH];
   float *output = new float[N + VECTOR_WIDTH];
   float *gold = new float[N + VECTOR_WIDTH];
   initValue(values, exponents, output, gold, N);
-
+ 
+ 
+  // //
+  // for(int i = 0; i < N+VECTOR_WIDTH; ++i)
+  //   printf("values[%d]: %f\texponents[%d]: %d\toutput[%d]: %f\tgold[%d]: %f\n", i, values[i],
+  //    i, exponents[i], i, output[i], i, gold[i]);
+  // //
+ 
+ 
   clampedExpSerial(values, exponents, gold, N);
   clampedExpVector(values, exponents, output, N);
 
@@ -70,6 +78,15 @@ int main(int argc, char *argv[])
 
   printf("\e[1;31mCLAMPED EXPONENT\e[0m (required) \n");
   bool clampedCorrect = verifyResult(values, exponents, output, gold, N);
+
+  // //
+  // printf("===============After verify================\n");
+  // for(int i = 0; i < N+VECTOR_WIDTH; ++i)
+  //   printf("values[%d]: %f\texponents[%d]: %d\toutput[%d]: %f\tgold[%d]: %f\n", i, values[i],
+  //    i, exponents[i], i, output[i], i, gold[i]);
+  // //
+
+
   if (printLog)
     PPLogger.printLog();
   PPLogger.printStats();

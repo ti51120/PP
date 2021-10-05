@@ -50,19 +50,23 @@ void clampedExpVector(float *values, int *exponents, float *output, int N)
   // Your solution should work for any value of
   // N and VECTOR_WIDTH, not just when VECTOR_WIDTH divides N
   //
-  __pp_vec_float val;
-  __pp_vec_int e;
-  __pp_vec_float result;
-  __pp_vec_int zero = _pp_vset_int(0);
-  __pp_vec_int ones = _pp_vset_int(1);
-	__pp_vec_float nine = _pp_vset_float(9.999999f);
+  __pp_vec_float val, result, nine = _pp_vset_float(9.999999f);
+  __pp_vec_int e, zero = _pp_vset_int(0), ones = _pp_vset_int(1); 
   __pp_mask maskAll, maskIsZero, maskIsNotZero, maskIsGt9;
+  
+	for (int i = 0; i < N; i += VECTOR_WIDTH)
+  {		
+		if(N - i < VECTOR_WIDTH)
+			maskAll = _pp_init_ones(N-i);
+		else
+			maskAll = _pp_init_ones();
 
-  for (int i = 0; i < N; i += VECTOR_WIDTH)
-  {
-    maskAll = _pp_init_ones(); // all ones
-    maskIsZero = _pp_init_ones(0); // all ones except for 0 exponent
-    _pp_vload_float(val, values + i, maskAll); // load value[]
+		// //
+		// for(int j = 0; j < VECTOR_WIDTH; ++j)
+		// 	printf("round: %d\tmaskAll[%d]: %d\n",i, j, maskAll.value[j]);
+		// //
+    
+		_pp_vload_float(val, values + i, maskAll); // load value[]
     _pp_vload_int(e, exponents + i, maskAll); // load exponents[]
 
     _pp_veq_int(maskIsZero, e, zero, maskAll); // mask for 0 exponent
@@ -74,11 +78,14 @@ void clampedExpVector(float *values, int *exponents, float *output, int N)
 		_pp_veq_int(maskIsZero, e, zero, maskAll);
 		maskIsNotZero = _pp_mask_not(maskIsZero);
 
+		// int k = 1;
 		while(_pp_cntbits(maskIsZero) != VECTOR_WIDTH){
+			// printf("inner: %d\nzero bits: %d\n", k++, _pp_cntbits(maskIsZero));
 			_pp_vmult_float(result, result, val, maskIsNotZero);
 			_pp_vsub_int(e, e, ones, maskIsNotZero);
 			_pp_veq_int(maskIsZero, e, zero, maskAll);
 			maskIsNotZero = _pp_mask_not(maskIsZero);
+			if(_pp_cntbits(maskIsZero) == N) break;
 		}
 
 		_pp_vgt_float(maskIsGt9, result, nine, maskAll);
