@@ -60,11 +60,6 @@ void clampedExpVector(float *values, int *exponents, float *output, int N)
 			maskAll = _pp_init_ones(N-i);
 		else
 			maskAll = _pp_init_ones();
-
-		// //
-		// for(int j = 0; j < VECTOR_WIDTH; ++j)
-		// 	printf("round: %d\tmaskAll[%d]: %d\n",i, j, maskAll.value[j]);
-		// //
     
 		_pp_vload_float(val, values + i, maskAll); // load value[]
     _pp_vload_int(e, exponents + i, maskAll); // load exponents[]
@@ -78,9 +73,7 @@ void clampedExpVector(float *values, int *exponents, float *output, int N)
 		_pp_veq_int(maskIsZero, e, zero, maskAll);
 		maskIsNotZero = _pp_mask_not(maskIsZero);
 
-		// int k = 1;
 		while(_pp_cntbits(maskIsZero) != VECTOR_WIDTH){
-			// printf("inner: %d\nzero bits: %d\n", k++, _pp_cntbits(maskIsZero));
 			_pp_vmult_float(result, result, val, maskIsNotZero);
 			_pp_vsub_int(e, e, ones, maskIsNotZero);
 			_pp_veq_int(maskIsZero, e, zero, maskAll);
@@ -105,9 +98,22 @@ float arraySumVector(float *values, int N)
   // PP STUDENTS TODO: Implement your vectorized version of arraySumSerial here
   //
 
+	__pp_vec_float res;
+	__pp_mask maskAll = _pp_init_ones();
+	float ans = 0.0;
+
   for (int i = 0; i < N; i += VECTOR_WIDTH)
-  {
+  {	
+		int round = VECTOR_WIDTH;
+		_pp_vload_float(res, values+i, maskAll);
+
+		while(round != 1){
+			_pp_hadd_float(res, res);
+			_pp_interleave_float(res, res);
+			round /= 2;
+		}
+		ans += res.value[0];
   }
 
-  return 0.0;
+  return ans;
 }
