@@ -6,9 +6,17 @@ using namespace std;
 void usage(const char* progname);
 void initValue(float* values1, float* values2, double* value3, float* output, unsigned int N);
 
-extern void test1(float* a, float* b, float* c, int N);
+extern double test1(float* a, float* b, float* c, int N);
 extern void test2(float *__restrict a, float *__restrict b, float *__restrict c, int N);
 extern double test3(double* __restrict a, int N) ;
+
+void test(float* values1, float* values2, float* output, int N, int round){
+  double tt = 0.f;
+  for(int i = 0; i < round; ++i){
+    tt += test1(values1, values2, output, N);
+  }
+  cout << (double)tt/round << endl;
+}
 
 int main(int argc, char * argv[]) {
   int N = 1024;
@@ -55,7 +63,8 @@ int main(int argc, char * argv[]) {
 
   cout << "Running test" << whichTestToRun << "()...\n";
   switch (whichTestToRun) {
-    case 1: test1(values1, values2, output, N); break;
+    // case 1: test1(values1, values2, output, N); break;
+    case 1: test(values1, values2, output, N, 100); break;
     case 2: test2(values1, values2, output, N); break;
     case 3: test3(values3, N); break;
   }

@@ -3,7 +3,7 @@
 #include "fasttime.h"
 #include <immintrin.h>
 
-void test1(float* __restrict a, float* __restrict b, float* __restrict c, int N) {
+double test1(float* __restrict a, float* __restrict b, float* __restrict c, int N) {
   __builtin_assume(N == 1024);
   a = (float *)__builtin_assume_aligned(a, 32);
   b = (float *)__builtin_assume_aligned(b, 32);
@@ -21,4 +21,5 @@ void test1(float* __restrict a, float* __restrict b, float* __restrict c, int N)
   double elapsedf = tdiff(time1, time2);
   std::cout << "Elapsed execution time of the loop in test1():\n" 
     << elapsedf << "sec (N: " << N << ", I: " << I << ")\n";
+  return elapsedf;
 }
