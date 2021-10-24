@@ -6,6 +6,7 @@
 
 using ll = long long int;
 
+ll global_number_in_circle = 0;
 struct interval{
     ll start;
     ll end;
@@ -44,7 +45,6 @@ int main(int argc, char *argv[]){
             perror("Failed to create thread!\n");
         }
     }
-    ll global_number_in_circle = 0;
     for(int i = 0; i < threadNum; ++i){
         ll *res;
         if(pthread_join(thds[i], (void**)&res)){

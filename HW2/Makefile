@@ -1,7 +1,12 @@
-pi.out: pi.o
-	g++ -g pi.o -o pi.out 
-	-rm *.o
-pi.o: pi.cpp
-	g++ -c -g -std=c++11 pi.cpp -o pi.o
+CC := g++
+exe := pi.out
+obj := pi.o
+
+all : $(obj)
+	$(CC) -o $(exe) $(obj) -pthread
+
+%.o : %.c
+	$(CC) -c $^ -o $@
+
 clean:
-	-rm *out
+	rm -f $(exe) *.o
