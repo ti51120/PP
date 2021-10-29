@@ -34,7 +34,7 @@ int main(int argc, char *argv[]){
     fasttime_t start = gettime();
 
     int threadNum = atoi(argv[1]);
-    long long int tosses = atoll(argv[2]);
+    ll tosses = atoll(argv[2]);
     pthread_t *thds = (pthread_t*)malloc(sizeof(pthread_t)*threadNum);
 
     for(int i = 0; i < threadNum; ++i){
