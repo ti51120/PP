@@ -1,12 +1,6 @@
-CC := g++
-exe := pi.out
-obj := pi.o
+pi.out: pi.cpp
+	g++ -O3 -mavx2 pi.cpp -o pi.out -Wall -lpthread
 
-all : $(obj)
-	$(CC) -o $(exe) $(obj) -pthread
-
-%.o : %.c
-	$(CC) -c $^ -o $@
-
+.PHONY: clean
 clean:
-	rm -f $(exe) *.o
+	rm *.out

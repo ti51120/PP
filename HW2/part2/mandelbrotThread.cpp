@@ -1,6 +1,5 @@
 #include <stdio.h>
 #include <thread>
-
 #include "CycleTimer.h"
 
 typedef struct
@@ -33,16 +32,26 @@ void workerThreadStart(WorkerArgs *const args)
     // to compute a part of the output image.  For example, in a
     // program that uses two threads, thread 0 could compute the top
     // half of the image and thread 1 could compute the bottom half.
-    // double start_time = CycleTimer::currentSeconds();
+    double start_time = CycleTimer::currentSeconds();
 
-    for(int i = args->threadId; i < args->height; i += args->numThreads){
-        mandelbrotSerial(args->x0, args->y0, args->x1, args->y1, args->width, args->height
-                        ,i, 1, args->maxIterations, args->output);
-    }
+    // if(args->numThreads < 5){
+    //     // spatial decomposition for 2, 3, 4 threads
+    //     int start_row = args->threadId * args->height / args->numThreads;
+    //     int total_row = args->height / args->numThreads;
+    //     mandelbrotSerial(args->x0, args->y0, args->x1, args->y1, args->width, args->height
+    //                         ,start_row, total_row, args->maxIterations, args->output);
+    // }
+    // else{
+        // extend to single work decomposition for all number of threads
+        for(unsigned int i = args->threadId; i < args->height; i += args->numThreads){
+            mandelbrotSerial(args->x0, args->y0, args->x1, args->y1, args->width, args->height
+                            ,i, 1, args->maxIterations, args->output);
+        }
+    // }
+    double end_time = CycleTimer::currentSeconds();
+    printf("Hello world from thread %d\t time: %f\n", args->threadId, end_time - start_time);
     
-    // double end_time = CycleTimer::currentSeconds();
-    // printf("Hello world from thread %d\t time: %f\n", args->threadId, end_time - start_time);
-    printf("Hello world from thread %d\n", args->threadId);
+    // printf("Hello world from thread %d\n", args->threadId);
 }
 
 //
