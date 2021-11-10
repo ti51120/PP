@@ -8,6 +8,8 @@
 #include "../common/CycleTimer.h"
 #include "../common/graph.h"
 
+#define it_max 1000
+
 // pageRank --
 //
 // g:           graph to process (see common/graph.h)
@@ -20,14 +22,44 @@ void pageRank(Graph g, double *solution, double damping, double convergence)
 
   // initialize vertex weights to uniform probability. Double
   // precision scores are used to avoid underflow for large graphs
-
   int numNodes = num_nodes(g);
   double equal_prob = 1.0 / numNodes;
+
+  #pragma omp parallel for
   for (int i = 0; i < numNodes; ++i)
   {
     solution[i] = equal_prob;
   }
+  
+  double offset = (1.0 - damping) / (double)numNodes;
+  double* tmp = (double*)malloc(sizeof(double) * numNodes);
+  bool converged = false;
+  while(!converged){
 
+    double global_diff = 0.0, no_outgoing_sum = 0.0;
+    #pragma omp parallel for
+    for (int i = 0; i < numNodes; i++){
+      tmp[i] = solution[i];
+      if(!outgoing_size(g, i)) 
+        no_outgoing_sum += damping * tmp[i] / (double)numNodes;
+    }
+    
+    #pragma omp parallel for
+    for(int node = 0; node < numNodes; ++node){
+      const Vertex* start = incoming_begin(g, node);
+      const Vertex* end = incoming_end(g, node);
+      double sum = 0.0;
+      for (const Vertex* v = start; v != end; v++){
+        sum += tmp[*v] / (double)outgoing_size(g, *v);
+      }  
+      sum = damping * sum + offset + no_outgoing_sum;
+      global_diff += fabs(sum - solution[node]);
+      solution[node] = sum;
+    }
+    converged = (global_diff < convergence) ? true : false;
+  }
+  
+  free(tmp);
   /*
      For PP students: Implement the page rank algorithm here.  You
      are expected to parallelize the algorithm using openMP.  Your
