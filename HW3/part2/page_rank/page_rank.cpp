@@ -32,34 +32,42 @@ void pageRank(Graph g, double *solution, double damping, double convergence)
   }
   
   double offset = (1.0 - damping) / (double)numNodes;
-  double* tmp = (double*)malloc(sizeof(double) * numNodes);
+  double* score_new = (double*)malloc(sizeof(double) * numNodes);
   bool converged = false;
+
   while(!converged){
 
-    double global_diff = 0.0, no_outgoing_sum = 0.0;
-    #pragma omp parallel for
+    double no_outgoing_sum = 0.0;
+
+    #pragma omp parallel for reduction(+:no_outgoing_sum)
     for (int i = 0; i < numNodes; i++){
-      tmp[i] = solution[i];
+      score_new[i] = solution[i];
       if(!outgoing_size(g, i)) 
-        no_outgoing_sum += damping * tmp[i] / (double)numNodes;
+        no_outgoing_sum += damping * score_new[i] / (double)numNodes;
     }
-    
-    #pragma omp parallel for
+
+    double global_diff = 0.0; 
+
+    #pragma omp parallel for reduction(+:global_diff)
     for(int node = 0; node < numNodes; ++node){
       const Vertex* start = incoming_begin(g, node);
       const Vertex* end = incoming_end(g, node);
       double sum = 0.0;
+
       for (const Vertex* v = start; v != end; v++){
-        sum += tmp[*v] / (double)outgoing_size(g, *v);
+        double tmp = score_new[*v] / (double)outgoing_size(g, *v);
+        sum += tmp;
       }  
+
       sum = damping * sum + offset + no_outgoing_sum;
       global_diff += fabs(sum - solution[node]);
       solution[node] = sum;
     }
+
     converged = (global_diff < convergence) ? true : false;
   }
   
-  free(tmp);
+  free(score_new);
   /*
      For PP students: Implement the page rank algorithm here.  You
      are expected to parallelize the algorithm using openMP.  Your
