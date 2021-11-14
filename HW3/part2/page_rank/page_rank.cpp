@@ -31,7 +31,7 @@ void pageRank(Graph g, double *solution, double damping, double convergence)
     solution[i] = equal_prob;
   }
   
-  double offset = (1.0 - damping) / (double)numNodes;
+  double global_diff, offset = (1.0 - damping) / (double)numNodes;
   double* score_new = (double*)malloc(sizeof(double) * numNodes);
   bool converged = false;
 
@@ -46,7 +46,7 @@ void pageRank(Graph g, double *solution, double damping, double convergence)
         no_outgoing_sum += damping * score_new[i] / (double)numNodes;
     }
 
-    double global_diff = 0.0; 
+    global_diff = 0.0; 
 
     #pragma omp parallel for reduction(+:global_diff)
     for(int node = 0; node < numNodes; ++node){
@@ -55,8 +55,7 @@ void pageRank(Graph g, double *solution, double damping, double convergence)
       double sum = 0.0;
 
       for (const Vertex* v = start; v != end; v++){
-        double tmp = score_new[*v] / (double)outgoing_size(g, *v);
-        sum += tmp;
+        sum += score_new[*v] / (double)outgoing_size(g, *v);
       }  
 
       sum = damping * sum + offset + no_outgoing_sum;
