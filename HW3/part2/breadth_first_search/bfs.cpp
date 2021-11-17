@@ -5,15 +5,13 @@
 #include <string.h>
 #include <cstddef>
 #include <omp.h>
-#include <vector>
-#include <iostream>
-#include <vector>
 
 #include "../common/CycleTimer.h"
 #include "../common/graph.h"
 
 #define ROOT_NODE_ID 0
 #define NOT_VISITED_MARKER -1
+#define beta 24
 // #define VERBOSE
 
 void vertex_set_clear(vertex_set *list)
@@ -28,28 +26,26 @@ void vertex_set_init(vertex_set *list, int count)
     vertex_set_clear(list);
 }
 
-// Take one step of "top-down" BFS.  For each vertex on the frontier,
-// follow all outgoing edges, and add all neighboring vertices to the
-// new_frontier.
-void top_down_step(Graph g, vertex_set *frontier, vertex_set *new_frontier, int *distances){
-    
-    for (int i = 0; i < frontier->count; i++){
-        int node = frontier->vertices[i];
+void top_down_step(Graph g, vertex_set *frontier, int *distances, int* depth){
+    int local_count = 0;
+    #pragma omp parallel for reduction(+:local_count)
+    for(int node = 0; node < g->num_nodes; ++node){
+        if(frontier->vertices[node] == *depth){
 
-        const Vertex* v_start = outgoing_begin(g, node);
-        const Vertex* v_end = outgoing_end(g, node);
-        
-        // attempt to add all neighbors to the new frontier
-        for (const Vertex* v=v_start; v != v_end; ++v){
-            if (distances[*v] == NOT_VISITED_MARKER){
-                distances[*v] = distances[node] + 1;
-                int index = new_frontier->count++;
-                new_frontier->vertices[index] = *v;
+            const Vertex* v_start = outgoing_begin(g, node);
+            const Vertex* v_end = outgoing_end(g, node);
+
+            for (const Vertex* v=v_start; v!=v_end; v++){
+                if(frontier->vertices[*v] == NOT_VISITED_MARKER){
+                    local_count++;
+                    distances[*v] = distances[node] + 1;
+                    frontier->vertices[*v] = *depth + 1;
+                }
             }
         }
     }
+    frontier->count = local_count;
 }
-
 // Implements top-down BFS.
 //
 // Result of execution is that, for each node in the graph, the
@@ -57,19 +53,19 @@ void top_down_step(Graph g, vertex_set *frontier, vertex_set *new_frontier, int 
 void bfs_top_down(Graph graph, solution *sol){
 
     vertex_set list1;
-    vertex_set list2;
     vertex_set_init(&list1, graph->num_nodes);
-    vertex_set_init(&list2, graph->num_nodes);
-
     vertex_set *frontier = &list1;
-    vertex_set *new_frontier = &list2;
 
     // initialize all nodes to NOT_VISITED
-    for (int i = 0; i < graph->num_nodes; i++)
+    #pragma omp parallel for
+    for (int i = 0; i < graph->num_nodes; i++){
+        frontier->vertices[i] = NOT_VISITED_MARKER;
         sol->distances[i] = NOT_VISITED_MARKER;
+    }
 
     // setup frontier with the root node
-    frontier->vertices[frontier->count++] = ROOT_NODE_ID;
+    int depth = 1;
+    frontier->vertices[frontier->count++] = depth;
     sol->distances[ROOT_NODE_ID] = 0;
 
     while (frontier->count != 0){
@@ -78,24 +74,20 @@ void bfs_top_down(Graph graph, solution *sol){
         double start_time = CycleTimer::currentSeconds();
 #endif
 
-        vertex_set_clear(new_frontier);
-
-        top_down_step(graph, frontier, new_frontier, sol->distances);
+        frontier->count = 0;
+        top_down_step(graph, frontier, sol->distances, &depth);
+        depth++;
 
 #ifdef VERBOSE
         double end_time = CycleTimer::currentSeconds();
         printf("frontier=%-10d %.4f sec\n", frontier->count, end_time - start_time);
 #endif
 
-        // swap pointers
-        vertex_set *tmp = frontier;
-        frontier = new_frontier;
-        new_frontier = tmp;
     }
 }
 
-void bottom_up_step(Graph g, vertex_set* frontier, int* distance, int* depth){
-    
+void bottom_up_step(Graph g, vertex_set* frontier, int* distances, int* depth){
+    #pragma omp parallel for
     for(int node = 0; node < g->num_nodes; ++node){
         if(frontier->vertices[node] == NOT_VISITED_MARKER){
 
@@ -103,7 +95,7 @@ void bottom_up_step(Graph g, vertex_set* frontier, int* distance, int* depth){
             const Vertex* v_end = incoming_end(g, node);
             for (const Vertex* v=v_start; v!=v_end; v++){
                 if(frontier->vertices[*v] == *depth){
-                    distance[node] = distance[*v] + 1;
+                    distances[node] = distances[*v] + 1;
                     frontier->vertices[node] = *depth + 1;
                     frontier->count++;
                     break;
@@ -118,17 +110,18 @@ void bfs_bottom_up(Graph graph, solution *sol){
     vertex_set list;
     vertex_set_init(&list, graph->num_nodes);
     vertex_set* frontier = &list;
-
+    
+    #pragma omp parallel for
     for(int i = 0; i < graph->num_nodes; ++i){
         frontier->vertices[i] = NOT_VISITED_MARKER;
         sol->distances[i] = NOT_VISITED_MARKER;
     }
 
     int depth = 1;
-    frontier->vertices[ROOT_NODE_ID] = depth;
+    frontier->vertices[frontier->count++] = depth;
     sol->distances[ROOT_NODE_ID] = 0;
     
-    frontier->count++;
+    
     while(frontier->count != 0){
 #ifdef VERBOSE
         double start_time = CycleTimer::currentSeconds();
@@ -159,7 +152,40 @@ void bfs_bottom_up(Graph graph, solution *sol){
 
 void bfs_hybrid(Graph graph, solution *sol){
     
+    vertex_set list;
+    vertex_set_init(&list, graph->num_nodes);
+    vertex_set* frontier = &list;
     
+    #pragma omp parallel for
+    for(int i = 0; i < graph->num_nodes; ++i){
+        frontier->vertices[i] = NOT_VISITED_MARKER;
+        sol->distances[i] = NOT_VISITED_MARKER;
+    }
+
+    int depth = 1;
+    frontier->vertices[frontier->count++] = depth;
+    sol->distances[ROOT_NODE_ID] = 0;
+
+    while(frontier->count != 0){
+
+#ifdef VERBOSE
+        double start_time = CycleTimer::currentSeconds();
+#endif
+        frontier->count = 0;
+        if(frontier->count >= graph->num_nodes/beta){
+            bottom_up_step(graph, frontier, sol->distances, &depth);
+        }
+        else{
+            top_down_step(graph, frontier, sol->distances, &depth);
+        }
+        depth++;
+
+#ifdef VERBOSE
+        double end_time = CycleTimer::currentSeconds();
+        printf("frontier=%-10d %.4f sec\n", frontier->count, end_time - start_time);
+#endif
+
+    }
     
     // For PP students:
     //
