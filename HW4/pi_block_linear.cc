@@ -5,6 +5,20 @@
 #include <sys/types.h>
 #include <unistd.h>
 
+using ll = long long int;
+
+ll cal_pi(ll iters, unsigned seed){
+
+    ll local_nums_in_circle = 0;
+    for(ll it = 0; it < iters; ++it){
+        double x = (double)rand_r(&seed) / RAND_MAX;
+        double y = (double)rand_r(&seed) / RAND_MAX;
+        if(x * x + y * y <= 1.0)
+            local_nums_in_circle++;
+    }
+    return local_nums_in_circle;
+}
+
 int main(int argc, char **argv)
 {
     // --- DON'T TOUCH ---
@@ -16,20 +30,37 @@ int main(int argc, char **argv)
     // ---
 
     // TODO: init MPI
+    MPI_Comm_rank(MPI_COMM_WORLD, &world_rank);
+    MPI_Comm_size(MPI_COMM_WORLD, &world_size);
+    MPI_Status status;
 
+    ll iters = tosses / world_size;
+    ll local_cnts, global_cnts, buf;
     if (world_rank > 0)
     {
         // TODO: handle workers
+        unsigned seed = (int)time(NULL) * world_rank; 
+        local_cnts = cal_pi(iters, seed); 
+        MPI_Send(&local_cnts, 1, MPI_LONG_LONG, 0, 0, MPI_COMM_WORLD);
+
     }
     else if (world_rank == 0)
     {
         // TODO: master
+        unsigned seed = (int)time(NULL);
+        ll iters = tosses - (world_size - 1) * (tosses / world_size);
+        
+        global_cnts = cal_pi(iters, seed);
+        for(int source = 1; source < world_size; ++source){
+            MPI_Recv(&buf, 1, MPI_LONG_LONG, source, 0, MPI_COMM_WORLD, &status);
+            global_cnts += buf;
+        }
     }
 
     if (world_rank == 0)
     {
         // TODO: process PI result
-
+        pi_result = 4 * global_cnts / (double)tosses;
         // --- DON'T TOUCH ---
         double end_time = MPI_Wtime();
         printf("%lf\n", pi_result);
