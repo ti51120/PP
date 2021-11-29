@@ -7,8 +7,9 @@
 
 using ll = long long int;
 
-ll cal_pi(ll iters, unsigned seed){
+ll cal_pi(ll iters, int world_rank){
 
+    unsigned seed = (int)time(NULL) * (world_rank + 1); 
     ll local_nums_in_circle = 0;
     for(ll it = 0; it < iters; ++it){
         double x = (double)rand_r(&seed) / RAND_MAX;
@@ -39,18 +40,15 @@ int main(int argc, char **argv)
     if (world_rank > 0)
     {
         // TODO: handle workers
-        unsigned seed = (int)time(NULL) * world_rank; 
-        local_cnts = cal_pi(iters, seed); 
+        local_cnts = cal_pi(iters, world_rank); 
         MPI_Send(&local_cnts, 1, MPI_LONG_LONG, 0, 0, MPI_COMM_WORLD);
 
     }
     else if (world_rank == 0)
     {
         // TODO: master
-        unsigned seed = (int)time(NULL);
-        ll iters = tosses - (world_size - 1) * (tosses / world_size);
-        
-        global_cnts = cal_pi(iters, seed);
+        ll iters = tosses - (world_size - 1) * (tosses / world_size);        
+        global_cnts = cal_pi(iters, world_rank);
         for(int source = 1; source < world_size; ++source){
             MPI_Recv(&buf, 1, MPI_LONG_LONG, source, 0, MPI_COMM_WORLD, &status);
             global_cnts += buf;
