@@ -61,55 +61,48 @@ int main(int argc, char* argv[])
     int block = n / size;
     int offset = n % size;
 
-    int *my_values = (int*)malloc(sizeof(int) * (block + offset) * m);
+    // int *my_values = (int*)malloc(sizeof(int) * (block + offset) * m);
     switch(my_rank)
     {
         case 0:
         {
             // Define my value
-            int *counts = (int*)malloc(sizeof(int) * size);
-            int *displacements = (int*)malloc(sizeof(int) * size);
-            
-            int *buffer = (int*)malloc(sizeof(int) * n * m);
-            for(int i = 0; i < n * m; ++i){
-                buffer[i] = i;
-            }
-            
-            
-            for(int p = 0; p < size; ++p){
-                counts[p] = (!offset) ? block * m : ((!p) ? (block + offset) * m : block * m);
-                displacements[p] = (!offset || !p) ? block * p * m : ((p == 1) ? (block + offset) * m : (block * p + offset) * m);
-            }
-
-            int recv_count = (offset == 0) ? block * m : (block + offset) * m;
-            MPI_Scatterv(buffer, counts, displacements, MPI_INT, my_values, recv_count, MPI_INT, root_rank, MPI_COMM_WORLD);
-           
-           
-            printf("Process %d\n\n", my_rank);
-            for(int i = 0; i < (block + offset); ++i){
-                for(int j = 0; j < m; ++j){
-                    printf("%d ", my_values[i * m + j]);
-                }
-                printf("\n");
+            int my_value[3] = {100, 100, 100};
+ 
+            // Define the receive counts
+            int counts[3] = {3, 2, 2};
+ 
+            // Define the displacements
+            int displacements[3] = {0, 3, 5};
+ 
+            int* buffer = (int*)calloc(7, sizeof(int));
+            printf("Process %d, my value = %d %d.\n", my_rank, my_value[0], my_value[1]);
+            MPI_Gatherv(&my_value, 3, MPI_INT, buffer, counts, displacements, MPI_INT, root_rank, MPI_COMM_WORLD);
+            printf("Values gathered in the buffer on process %d:", my_rank);
+            for(int i = 0; i < 7; i++)
+            {
+                printf(" %d", buffer[i]);
             }
             printf("\n");
+            free(buffer);
             break;
         }
-        default:
+        case 1:
         {
-            // Declare my values
-            // int *my_values = (int*)malloc(sizeof(int) * (block + offset) * m);
-            MPI_Scatterv(NULL, NULL, NULL, MPI_INT, my_values, block * m, MPI_INT, root_rank, MPI_COMM_WORLD);
-            
-            
-            printf("Process %d\n\n", my_rank);
-            for(int i = 0; i < block; ++i){
-                for(int j = 0; j < m; ++j){
-                    printf("%d ", my_values[i * m + j]);
-                }
-                printf("\n");
-            }
-            printf("\n");
+            // Define my value
+            int my_value[2] = {101, 101};
+ 
+            printf("Process %d, my value = %d %d.\n", my_rank, my_value[0], my_value[1]);
+            MPI_Gatherv(&my_value, 2, MPI_INT, NULL, NULL, NULL, MPI_INT, root_rank, MPI_COMM_WORLD);
+            break;
+        }
+        case 2:
+        {
+            // Define my values
+            int my_values[2] = {102, 102};
+ 
+            printf("Process %d, my values = %d %d.\n", my_rank, my_values[0], my_values[1]);
+            MPI_Gatherv(my_values, 2, MPI_INT, NULL, NULL, NULL, MPI_INT, root_rank, MPI_COMM_WORLD);
             break;
         }
     }
