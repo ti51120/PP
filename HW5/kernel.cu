@@ -55,7 +55,8 @@ void hostFE (float upperX, float upperY, float lowerX, float lowerY, int* img, i
     size_t size = sizeof(int) * resX * resY;
     int* output;
     int* d_img;
-    output =  (int*)malloc(size);
+    // output =  (int*)malloc(size);
+    cudaHostAlloc (&output, size, cudaHostAllocDefault);
     cudaMalloc(&d_img, size);
 
     dim3 threadsPerBlock(N, N);
@@ -67,5 +68,5 @@ void hostFE (float upperX, float upperY, float lowerX, float lowerY, int* img, i
     memcpy(img, output, size);
 
     cudaFree(d_img);
-    free(output);
+    cudaFreeHost(output);
 }
