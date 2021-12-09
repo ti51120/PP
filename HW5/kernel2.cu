@@ -2,7 +2,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 
-#define N 16
+#define BlockSize 16
 
 __global__ void mandelKernel(float lowerX, float lowerY, float stepX, float stepY, int* img, int resX, int maxIterations, int pitch) {
 
@@ -44,7 +44,7 @@ void hostFE (float upperX, float upperY, float lowerX, float lowerY, int* img, i
     cudaHostAlloc (&output, size, cudaHostAllocDefault);
     cudaMallocPitch(&d_img, &pitch, widthByte, height);
 
-    dim3 threadsPerBlock(N, N);
+    dim3 threadsPerBlock(BlockSize, BlockSize);
     dim3 numBlocks(resX / threadsPerBlock.x, resY / threadsPerBlock.y);
     mandelKernel<<<numBlocks, threadsPerBlock>>>(lowerX, lowerY, stepX, stepY, d_img, resX, maxIterations, pitch);
 
