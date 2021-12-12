@@ -2,7 +2,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 
-#define BlockSize 16
+#define BlockSize 8
 
 __global__ void mandelKernel(float lowerX, float lowerY, float stepX, float stepY, int* img, int resX, int maxIterations, int pitch) {
 
