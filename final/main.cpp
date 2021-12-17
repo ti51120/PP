@@ -24,8 +24,8 @@ extern float *canny_edge_detection(
                     const int      height);
 
 extern float *canny_edge_detection_thread(
+                    float 	       *in,
                     const int      thread,
-                    const float    *in,
                     const int      width,
                     const int      height);
 
@@ -62,7 +62,7 @@ int main(void){
 	for (int i = 0; i < 10; i++){
 		memset(outputImage, 0, dataSize);
 		start_time = CycleTimer::currentSeconds();
-		outputImage = canny_edge_detection_thread(threads, inputImage, imageWidth, imageHeight);
+		outputImage = canny_edge_detection_thread(inputImage, threads, imageWidth, imageHeight);
 		end_time = CycleTimer::currentSeconds();
         minThread = std::min(minThread, end_time - start_time);
 	}

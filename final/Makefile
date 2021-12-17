@@ -17,7 +17,7 @@ dirs:
 		/bin/mkdir -p $(OBJDIR)/
 
 clean:
-		/bin/rm -rf $(OBJDIR) *.ppm *~ $(APP_NAME)
+		/bin/rm -rf $(OBJDIR) *.bmp *~ $(APP_NAME)
 
 OBJS=$(OBJDIR)/main.o $(OBJDIR)/canny_serial.o $(OBJDIR)/canny_thread.o $(PPM_OBJ)
 
