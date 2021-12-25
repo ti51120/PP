@@ -20,11 +20,15 @@ typedef float pixel_t;
 
 extern float *canny_edge_detection(
                     const float    *in,
+					float 		   *outputImage,
                     const int      width,
-                    const int      height);
+                    const int      height,
+					const int      start,
+					const int      total);
 
 extern float *canny_edge_detection_thread(
                     float 	       *in,
+					float 		   *outputImage,
                     const int      thread,
                     const int      width,
                     const int      height);
@@ -47,27 +51,27 @@ int main(void){
 	for (int i = 0; i < 10; i++){
 		memset(outputImage, 0, dataSize);
 		start_time = CycleTimer::currentSeconds();
-		outputImage = canny_edge_detection(inputImage, imageWidth, imageHeight);
+		canny_edge_detection(inputImage, outputImage, imageWidth, imageHeight, 0, imageHeight);
 		end_time = CycleTimer::currentSeconds();
         minSerial = std::min(minSerial, end_time - start_time);
 	}
 
-	printf("Serial verion\n[execution time]: \t\t[%.3f] ms\n\n", minSerial * 1000);
+	printf("Serial version\n[execution time]: \t\t[%.3f] ms\n\n", minSerial * 1000);
 
 	storeImage(outputImage, outputFile_serial, imageHeight, imageWidth, inputFile);
 
     // thread version
-    int threads = 5;
+    int threads = 2;
     double minThread = 1e30;
 	for (int i = 0; i < 10; i++){
 		memset(outputImage, 0, dataSize);
 		start_time = CycleTimer::currentSeconds();
-		outputImage = canny_edge_detection_thread(inputImage, threads, imageWidth, imageHeight);
+		canny_edge_detection_thread(inputImage, outputImage, threads, imageWidth, imageHeight);
 		end_time = CycleTimer::currentSeconds();
         minThread = std::min(minThread, end_time - start_time);
 	}
 
-    printf("Thread verions\n[execution time]: \t\t[%.3f] ms\n\n", minThread * 1000);
+    printf("Thread version\n[execution time]: \t\t[%.3f] ms\n\n", minThread * 1000);
 
 	storeImage(outputImage, outputFile_thread, imageHeight, imageWidth, inputFile);
 	

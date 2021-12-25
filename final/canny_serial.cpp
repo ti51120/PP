@@ -95,8 +95,11 @@ gaussian_filter(const pixel_t *in,
 
 float *
 canny_edge_detection(const float	*in,
+					 float          *outputImage,
                      const int      width,
-                     const int      height)
+                     const int      height,
+					 const int      start,
+					 const int      total)
 {
 	int i, j, k, nedges;
 	int *edges;
@@ -119,26 +122,26 @@ canny_edge_detection(const float	*in,
 	pixel_t *pixels = (pixel_t*)malloc(width * height * sizeof(pixel_t));
 
 	/* Convert to pixel_t. */
-	for (i = 0; i < width * height; i++) {
+	for (i = start; i < total; i++) {
 		pixels[i] = (pixel_t)in[i];
 	}
 
-	gaussian_filter(pixels, out, width, height, CANNY_SIGMA);
+	gaussian_filter(pixels, outputImage, width, height, CANNY_SIGMA);
 
-	convolution(out, after_Gx, Gx, width, height, 3, false);
+	convolution(outputImage, after_Gx, Gx, width, height, 3, false);
 
-	convolution(out, after_Gy, Gy, width, height, 3, false);
+	convolution(outputImage, after_Gy, Gy, width, height, 3, false);
 
-	for (i = 1; i < width - 1; i++) {
-		for (j = 1; j < height - 1; j++) {
+	for (i = 0; i < width - 1; i++) {
+		for (j = 0; j < height - 1; j++) {
 			const int c = i + width * j;
 			G[c] = (pixel_t)hypot(after_Gx[c], after_Gy[c]);
 		}
 	}
 
 	/* Non-maximum suppression, straightforward implementation. */
-	for (i = 1; i < width - 1; i++) {
-		for (j = 1; j < height - 1; j++) {
+	for (i = 0; i < width - 1; i++) {
+		for (j = start; j < start + height - 1; j++) {
 			const int c = i + width * j;
 			const int nn = c - width;
 			const int ss = c + width;
@@ -154,23 +157,23 @@ canny_edge_detection(const float	*in,
 				((dir > 1 && dir <= 3) && G[c] > G[nw] && G[c] > G[se]) || // 45 deg
 				((dir > 3 && dir <= 5) && G[c] > G[nn] && G[c] > G[ss]) || // 90 deg
 				((dir > 5 && dir <= 7) && G[c] > G[ne] && G[c] > G[sw]))   // 135 deg
-			nms[c] = G[c];
+				nms[c] = G[c];
 			else
-			nms[c] = 0;
+				nms[c] = 0;
 		}
 	}
 
 	/* Reuse the array used as a stack, width * height / 2 elements should be enough. */
 	edges = (int *) after_Gy;
-	memset(out, 0, sizeof(pixel_t) * width * height);
+	memset(outputImage, 0, sizeof(pixel_t) * width * height);
 	memset(edges, 0, sizeof(pixel_t) * width * height);
 
 	/* Tracing edges with hysteresis. Non-recursive implementation. */
-	for (j = 1; j < height - 1; j++) {
-		for (i = 1; i < width - 1; i++) {
+	for (j = start; j < start + height - 1; j++) {
+		for (i = 0; i < width - 1; i++) {
 			/* Trace edges. */
-			if (nms[t] >= CANNY_UPPER && out[t] == 0) {
-				out[t] = MAX_BRIGHTNESS;
+			if (nms[t] >= CANNY_UPPER && outputImage[t] == 0) {
+				outputImage[t] = MAX_BRIGHTNESS;
 				nedges = 1;
 				edges[0] = t;
 
@@ -189,8 +192,8 @@ canny_edge_detection(const float	*in,
 					nbs[7] = nbs[1] - 1; // se
 
 					for (k = 0; k < 8; k++) {
-						if (nms[nbs[k]] >= CANNY_LOWER && out[nbs[k]] == 0) {
-							out[nbs[k]] = MAX_BRIGHTNESS;
+						if (nms[nbs[k]] >= CANNY_LOWER && outputImage[nbs[k]] == 0) {
+							outputImage[nbs[k]] = MAX_BRIGHTNESS;
 							edges[nedges] = nbs[k];
 							nedges++;
 						}
@@ -201,19 +204,9 @@ canny_edge_detection(const float	*in,
 		}
 	}
 
-	retval = (float*)malloc(width * height * sizeof(float));
-
-	/* Convert back to float */
-	for (i = 0; i < width * height; i++) {
-		retval[i] = (float)out[i];
-	}
-
 	free(after_Gx);
 	free(after_Gy);
 	free(G);
 	free(nms);
 	free(pixels);
-	free(out);
-
-	return retval;
 }
